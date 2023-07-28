@@ -1,14 +1,13 @@
 import { WebSocketServer } from "ws";
-import EventEmitter from "events";
 import amqplib from "amqplib/callback_api";
 import { config } from "./lib/config";
 
 const wss = new WebSocketServer({
     port: config.wss.port,
 });
-const messageEvent = new EventEmitter();
 const QUEUE_NAME = "firehose-message";
 const messages: string[] = [];
+const sockets: WebSocket[] = [];
 
 wss.on("listening", () => {
     console.log("[WSS] Listening");
@@ -16,11 +15,10 @@ wss.on("listening", () => {
 
 wss.on("connection", (socket: WebSocket) => {
     console.log("[WSS] Socket Connected");
-    messageEvent.on("messages", (messages: string[]) => {
-        socket.send(JSON.stringify(messages));
-    });
+    sockets.push(socket);
 
     socket.addEventListener("close", () => {
+        sockets.splice(sockets.indexOf(socket), 1);
         console.log("[WSS] Socket Disconnected");
     });
 });
@@ -48,5 +46,8 @@ amqplib.connect(
 );
 
 setInterval(() => {
-    messageEvent.emit("messages", messages.splice(0));
+    const msgs = messages.splice(0);
+    for (const socket of sockets) {
+        socket.send(JSON.stringify(msgs));
+    }
 }, 500);
