@@ -5,7 +5,7 @@ import { config } from "./lib/config";
 const wss = new WebSocketServer({
     port: config.wss.port,
 });
-const QUEUE_NAME = "firehose-message";
+const QUEUE_NAME = config.amqp.messageQueueName;
 const messages: string[] = [];
 const sockets: WebSocket[] = [];
 
