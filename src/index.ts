@@ -1,6 +1,7 @@
 import { WebSocketServer } from "ws";
 import amqplib from "amqplib/callback_api";
 import { config } from "./lib/config";
+import { sendDemoMessage } from "./demo";
 
 const wss = new WebSocketServer({
     port: config.wss.port,
@@ -47,7 +48,11 @@ amqplib.connect(
 
 setInterval(() => {
     const msgs = messages.splice(0);
+    if (msgs.length == 0) return;
+
     for (const socket of sockets) {
         socket.send(JSON.stringify(msgs));
     }
+
+    sendDemoMessage(msgs);
 }, 500);
