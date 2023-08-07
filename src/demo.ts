@@ -32,6 +32,7 @@ export function sendDemoMessage(msgs: string[]) {
         message: randomMessage.trailing,
         channel: randomMessage.param.slice(1),
         from: randomMessage.tags["display-name"],
+        userColor: randomMessage.tags["color"],
     };
 
     for (const socket of demoSockets) {
