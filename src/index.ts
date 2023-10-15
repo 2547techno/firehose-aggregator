@@ -1,13 +1,14 @@
 import { WebSocketServer } from "ws";
 import amqplib from "amqplib/callback_api";
 import { config } from "./lib/config";
+import { db } from "./lib/db";
 
 const wss = new WebSocketServer({
     port: config.wss.port,
 });
 const QUEUE_NAME = config.amqp.messageQueueName;
 const messages: string[] = [];
-const sockets: WebSocket[] = [];
+const authenticatedSockets: WebSocket[] = [];
 
 wss.on("listening", () => {
     console.log("[WSS] Listening");
@@ -15,11 +16,63 @@ wss.on("listening", () => {
 
 wss.on("connection", (socket: WebSocket) => {
     console.log("[WSS] Socket Connected");
-    sockets.push(socket);
+
+    // if not authenticated after timeout, close socket
+    const authTimeout = setTimeout(() => {
+        socket.close();
+    }, config.wss.authTimeout);
 
     socket.addEventListener("close", () => {
-        sockets.splice(sockets.indexOf(socket), 1);
+        authenticatedSockets.splice(authenticatedSockets.indexOf(socket), 1);
         console.log("[WSS] Socket Disconnected");
+    });
+
+    socket.addEventListener("message", async (event: MessageEvent<string>) => {
+        // ignore messages from authed sockets
+        // only message listening for is auth message
+        if (authenticatedSockets.includes(socket)) {
+            return;
+        }
+
+        let message: {
+            [key: string]: any;
+        } = {};
+        try {
+            message = JSON.parse(event.data);
+        } catch (err) {
+            console.log(err);
+            return;
+        }
+
+        // no auth field
+        if (!message.auth) {
+            return;
+        }
+
+        try {
+            const rows: any[] = await db.pool.query(
+                `SELECT * FROM ${config.db.database}.API_KEYS WHERE \`key\` = ?`,
+                message.auth
+            );
+            if (rows.length <= 0) {
+                return socket.send(
+                    JSON.stringify({
+                        error: "invalid key",
+                    })
+                );
+            }
+        } catch (err) {
+            console.log(err);
+            return;
+        }
+
+        clearTimeout(authTimeout);
+        authenticatedSockets.push(socket);
+        socket.send(
+            JSON.stringify({
+                success: "authenticated socket",
+            })
+        );
     });
 });
 
@@ -47,7 +100,7 @@ amqplib.connect(
 
 setInterval(() => {
     const msgs = messages.splice(0);
-    for (const socket of sockets) {
+    for (const socket of authenticatedSockets) {
         socket.send(JSON.stringify(msgs));
     }
 }, 500);
