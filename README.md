@@ -6,8 +6,12 @@
 
 ```jsonc
 {
+    "demoWss": {
+        "port": 2999 // websocket port to server demo stream
+    },
     "wss": {
-        "port": 3000 // websocket port to serve message stream
+        "port": 3000, // websocket port to serve message stream
+        "authTimeout": 10000 // how long sockets and be unauthenticated before being closed
     },
     "amqp": {
         // rabbitmq creds
@@ -15,6 +19,13 @@
         "user": "user",
         "password": "password",
         "messageQueueName": "firehose-message" // queue name to receive messages from
+    },
+    "db": {
+        // db creds
+        "host": "127.0.0.1",
+        "user": "user",
+        "password": "password",
+        "database": "DB_NAME"
     }
 }
 ```
