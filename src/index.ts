@@ -108,4 +108,4 @@ setInterval(() => {
     }
 
     sendDemoMessage(msgs);
-}, 500);
+}, 250);
