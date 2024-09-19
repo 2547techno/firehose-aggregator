@@ -87,7 +87,9 @@ amqplib.connect(
             if (err) throw err;
             console.log("[AMQP] Connected to queue", QUEUE_NAME);
 
-            channel.assertQueue(QUEUE_NAME);
+            channel.assertQueue(QUEUE_NAME, {
+                maxLength: 100,
+            });
 
             channel.consume(QUEUE_NAME, (message) => {
                 if (!message) return;
