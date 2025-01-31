@@ -108,12 +108,15 @@ amqplib.connect(
                 maxLength: 100,
             });
 
-            channel.consume(QUEUE_NAME, (message) => {
-                if (!message) return;
+            channel.consume(
+                QUEUE_NAME,
+                (message) => {
+                    if (!message) return;
 
-                messages.push(message.content.toString());
-                channel.ack(message);
-            });
+                    messages.push(message.content.toString());
+                },
+                { noAck: true }
+            );
         });
     }
 );
